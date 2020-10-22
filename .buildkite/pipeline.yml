@@ -12,3 +12,5 @@ steps:
         push-retries: 4
         pull-retries: 2
   - wait
+  - command: .buildkite/pipeline.sh | buildkite-agent pipeline upload
+    label: ":pipeline: Upload"

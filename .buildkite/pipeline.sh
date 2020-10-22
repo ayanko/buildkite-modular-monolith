@@ -1,15 +1,13 @@
 #!/bin/bash
 
-# exit immediately on failure, or if an undefined variable is used
 set -eu
 
 GH_API_TOKEN="${GH_TOKEN}"
 GH_API_REPO="ayanko/buildkite-modular-monolith"
 GH_API_BRANCH="${BUILDKITE_BRANCH}"
 
-cat .buildkite/pipeline.yml
+echo "steps:"
 
-# add a new command step to run the tests in each test directory
 for gem in gems/*; do
   count=$(curl -s \
     -H "Authorization: token ${GH_TOKEN}" \
