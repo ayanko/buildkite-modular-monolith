@@ -11,25 +11,4 @@ steps:
           - test:243200153905.dkr.ecr.us-east-1.amazonaws.com/availability-engine-ci:latest
         push-retries: 4
         pull-retries: 2
-
   - wait
-
-  - name: ":rspec: foo1"
-    command: "cd gems/foo1 && bundle install && rake spec"
-    timeout_in_minutes: 10
-    retry:
-      automatic: true
-    plugins:
-      docker-compose#v3.3.0:
-        run: test
-        pull-retries: 4
-
-  - name: ":rspec: foo2"
-    command: "cd gems/foo1 && bundle install && rake spec"
-    timeout_in_minutes: 10
-    retry:
-      automatic: true
-    plugins:
-      docker-compose#v3.3.0:
-        run: test
-        pull-retries: 4
