@@ -6,8 +6,6 @@ GH_API_TOKEN="${GH_TOKEN}"
 GH_API_REPO="ayanko/buildkite-modular-monolith"
 GH_API_BRANCH="${BUILDKITE_BRANCH}"
 
-echo "steps:"
-
 for gem in gems/*; do
   master_sha=$(curl -s \
     -H "Authorization: token ${GH_TOKEN}" \
