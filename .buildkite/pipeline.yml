@@ -1,5 +1,6 @@
 steps:
-  - name: ":large_yellow_circle: skipped"
+  - label: ":large_yellow_circle:"
+    command: echo "Skip"
   - name: ":docker: :package:"
     timeout_in_minutes: 10
     plugins:
