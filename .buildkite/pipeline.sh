@@ -24,7 +24,7 @@ for gem in gems/*; do
   )
 
   if [[ "${current_sha}" != "${master_sha}" ]]; then
-    changed_gems+=(gem)
+    changed_gems+=(${gem})
   fi
 done
 
@@ -32,7 +32,7 @@ if [[ ${#changed_gems[@]} -eq 0 ]]; then
   echo "steps: []"
 else
   echo "steps:"
-  for gem in ${!changed_gems[@]}; do
+  for gem in ${changed_gems[@]}; do
     echo "  - name: \":rspec:\""
     echo "    command: \"cd ${gem} && bundle install && rake spec\""
     echo "    timeout_in_minutes: 10"
