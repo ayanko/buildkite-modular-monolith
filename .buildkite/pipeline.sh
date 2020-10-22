@@ -6,6 +6,8 @@ GH_API_TOKEN="${GH_TOKEN}"
 GH_API_REPO="ayanko/buildkite-modular-monolith"
 GH_API_BRANCH="${BUILDKITE_BRANCH}"
 
+changed_gems=()
+
 for gem in gems/*; do
   master_sha=$(curl -s \
     -H "Authorization: token ${GH_TOKEN}" \
@@ -22,6 +24,15 @@ for gem in gems/*; do
   )
 
   if [[ "${current_sha}" != "${master_sha}" ]]; then
+    changed_gems+=(gem)
+  fi
+done
+
+if [[ ${#changed_gems[@]} -eq 0 ]]; then
+  echo "steps: []"
+else
+  echo "steps:"
+  for gem in ${!changed_gems[@]}; do
     echo "  - name: \":rspec:\""
     echo "    command: \"cd ${gem} && bundle install && rake spec\""
     echo "    timeout_in_minutes: 10"
@@ -31,5 +42,5 @@ for gem in gems/*; do
     echo "      docker-compose#v3.3.0:"
     echo "        run: test"
     echo "        pull-retries: 4"
-  fi
-done
+  done
+fi
