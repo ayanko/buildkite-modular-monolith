@@ -1,6 +1,7 @@
 steps:
-  - label: ":large_yellow_circle:"
+  - label: ":point_up:"
     command: echo "Skip"
+    if: build.id == null
   - name: ":docker: :package:"
     timeout_in_minutes: 10
     plugins:
