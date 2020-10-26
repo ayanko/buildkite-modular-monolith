@@ -90,7 +90,7 @@ for root in ${MODULAR_ROOTS[@]}; do
     fi
 
     if [[ $dir_changed == true ]]; then
-      yq r "$path/.buildkite/pipeline.yml" steps
+      cat "$path/.buildkite/pipeline.yml" | sed '1 d'
     else
       echo "  - label: \":point_up:\""
       echo "    command: echo \"Skip ${path}\""
