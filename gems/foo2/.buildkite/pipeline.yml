@@ -1,4 +1,3 @@
-steps:
   - label: ":rspec:"
     command: "cd gems/foo2 && bundle install && rake spec"
     timeout_in_minutes: 10

@@ -1,5 +1,5 @@
 steps:
-  - name: ":docker: :package:"
+  - label: ":docker: :package:"
     timeout_in_minutes: 10
     plugins:
       docker-compose#v3.3.0:
