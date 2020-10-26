@@ -1,6 +1,4 @@
 steps:
-  - label: ":point_up:"
-    command: echo "Skip"
   - name: ":docker: :package:"
     timeout_in_minutes: 10
     plugins:

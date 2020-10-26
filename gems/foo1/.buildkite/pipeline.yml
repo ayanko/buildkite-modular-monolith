@@ -1,0 +1,10 @@
+steps:
+  - label: ":rspec:"
+    command: "cd gems/foo1 && bundle install && rake spec"
+    timeout_in_minutes: 10
+    retry:
+      automatic: true
+      plugins:
+        docker-compose#v3.3.0:
+          run: test
+          pull-retries: 4
