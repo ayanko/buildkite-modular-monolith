@@ -11,3 +11,4 @@ steps:
           - test:243200153905.dkr.ecr.us-east-1.amazonaws.com/availability-engine-ci:latest
         push-retries: 4
         pull-retries: 2
+  - wait
