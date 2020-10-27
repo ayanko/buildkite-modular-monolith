@@ -28,8 +28,8 @@ function print_skip_steps {
 
 function print_error_steps {
   local error="$1"
-  yq n steps.label "$error"
-  echo "  command: \"false\""
+  yq n 'steps[0].label' "$error"
+  echo "    command: \"false\""
 }
 
 function gh_api_request {
