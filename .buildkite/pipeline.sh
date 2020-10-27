@@ -27,14 +27,13 @@ function print_skip_steps {
 }
 
 function print_error_steps {
-  local error="$1"
-  echo "$error" > pipeline.log
+  local error=$(echo "$1" | base64)
   cat<<YAML
 steps:
-  - label: ":red_circle:"
-    command: "false"
-    artifact_paths:
-      - pipeline.log
+  - label: ":skull_and_crossbones:"
+    commands:
+      - "echo ${error} | base64 -d"
+      - "false"
 YAML
 }
 
