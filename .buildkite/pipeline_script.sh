@@ -11,6 +11,7 @@ declare -r PIPELINE_FILE='.buildkite/pipeline.yml'
 declare -r HIGH_PRIORITY_SCRIPT='.buildkite/high_priority_instructions.yml'
 declare -r HIGH_PRIORITY_LABEL='high-priority-build'
 declare -r MODULAR_ROOTS=(gems)
+declare -r TEMP_FILE='pipeline.tmp'
 
 ###############################################################################
 
@@ -127,14 +128,15 @@ pipeline=$(cat $PIPELINE_FILE)
 
 for root in ${MODULAR_ROOTS[@]}; do
   for path in $root/*; do
+    cat "${path}/${PIPELINE_FILE}" > $TEMP_FILE
+
     path_changed=$(is_path_changed "$compare_json" "$path")
 
-    if [[ $path_changed == true ]]; then
-      pipeline=$(echo "$pipeline" | yq m - "${path}/${PIPELINE_FILE}" -a append)
-    else
-      pipeline=$(echo "$pipeline" | yq w - 'steps[+].label' ":point_up: Skip ${path}")
-      pipeline=$(echo "$pipeline" | yq w - 'steps[-1].command' 'echo true')
+    if [[ $path_changed == false ]]; then
+      yq w -i $TEMP_FILE 'steps[*].skip' true
     fi
+
+    pipeline=$(echo "$pipeline" | yq m - $TEMP_FILE -a append)
   done
 done
 
