@@ -27,14 +27,15 @@ function print_skip_steps {
 }
 
 function print_error_steps {
-  local error=$(echo "$1" | base64)
-  cat<<YAML
-steps:
-  - label: ":skull_and_crossbones:"
-    commands:
-      - "echo \"${error}\" | base64 -d"
-      - "false"
-YAML
+  local lines=$(echo "$1" | base64)
+  echo "steps:"
+  echo "  - label: \":skull_and_crossbones:\""
+  echo "    commands:"
+  for line in $lines; do
+    echo "      - \"echo $line >> pipeline.err\""
+  done
+  echo "      - \"cat pipeline.err | base64 -d\""
+  echo "      - \"false\""
 }
 
 function gh_api_request {
