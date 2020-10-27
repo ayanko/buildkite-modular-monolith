@@ -95,7 +95,7 @@ if [[ "$BUILDKITE_PULL_REQUEST" != "false" ]]; then
 fi
 
 # perform GH compare request
-declare compare_json=""
+declare compare_json
 if [[ $enforce_changes == false ]]; then
   gh_api_request "compare/$base_branch...$current_branch"
   if [[ -n "$_result" ]];then
@@ -109,16 +109,16 @@ pipeline=$(cat $PIPELINE_FILE)
 for root in ${MODULAR_ROOTS[@]}; do
   for path in $root/*; do
     if [[ -n "$compare_json" ]]; then
-      dir_changed=true
-    else
       dir_changed=$(is_path_changed "$compare_json" "$path")
+    else
+      dir_changed=true
     fi
 
     if [[ $dir_changed == true ]]; then
       pipeline=$(echo "$pipeline" | yq m - "${path}/${PIPELINE_FILE}" -a append)
     else
       pipeline=$(echo "$pipeline" | yq w - 'steps[+].label' ":point_up: Skip ${path}")
-      pipeline=$(echo "$pipeline" | yq w - 'steps[-1].command' 'true')
+      pipeline=$(echo "$pipeline" | yq w - 'steps[-1].command' 'echo true')
     fi
   done
 done
