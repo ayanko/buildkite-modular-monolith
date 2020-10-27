@@ -23,13 +23,13 @@ function print_dir_steps {
 
 function print_skip_steps {
   echo "  - label: \":point_up: Skip $1\""
-  echo "    command: true"
+  echo "    command: \"true\""
 }
 
 function print_error_steps {
   local error="$1"
   yq n steps.label "$error"
-  echo "  command: false"
+  echo "  command: \"false\""
 }
 
 function gh_api_request {
