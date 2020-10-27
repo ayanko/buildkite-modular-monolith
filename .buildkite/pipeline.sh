@@ -89,7 +89,7 @@ declare _result
 
 # perform GH compare request
 if [[ $enforce_changed == false ]]; then
-  gh_api_request "compare/$base_branch...$current_branch"
+  gh_api_request "compare2/$base_branch...$current_branch"
   compare_json="$_result"
 fi
 
