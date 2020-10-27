@@ -31,9 +31,11 @@ function print_error_steps {
   echo "steps:"
   echo "  - label: \":skull_and_crossbones:\""
   echo "    commands:"
+  echo "      - \"echo 'write error to pipeline.err'\""
   for line in $lines; do
     echo "      - \"echo $line >> pipeline.err\""
   done
+  echo "      - \"echo 'read error from pipeline.err'\""
   echo "      - \"cat pipeline.err | base64 -d\""
   echo "      - \"false\""
 }
