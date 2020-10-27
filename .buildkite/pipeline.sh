@@ -1,99 +1,115 @@
 #!/bin/bash
 
-set -eu
+set -euo pipefail
 
 ###############################################################################
 
-readonly MODULAR_ROOTS=(gems)
-readonly GH_REPO_URL_REGEXP='^git\@github\.com\:(.*)\.git$'
+declare -r GH_API_BASE_URL="https://api.github.com/repos"
+declare -r GH_OWNER_REPO_REGEXP='^git\@github\.com\:(.*)\.git$'
+declare -r DEFAULT_BASE_BRANCH='master'
+declare -r PIPELINE_FILE='.buildkite/pipeline.yml'
+declare -r MODULAR_ROOTS=(gems)
 
 ###############################################################################
 
-function error_exit {
-  echo "${1:-"Unknown Error"}" >&2
-  exit 1
+function print_main_steps {
+  cat $PIPELINE_FILE
 }
 
-function get_gh_api_base {
-  if [[ ${BUILDKITE_REPO} =~ ${GH_REPO_URL_REGEXP} ]]; then
-    echo "https://api.github.com/repos/${BASH_REMATCH[1]}"
-  else
-    error_exit "Can't parse BUILDKITE_REPO=${BUILDKITE_REPO}"
-  fi
+function print_dir_steps {
+  local dir="$1"
+  cat "$dir/$PIPELINE_FILE" | sed '1 d'
+}
+
+function print_skip_steps {
+  echo "  - label: :point_up: Skip $1"
+  echo "    command: true"
+}
+
+function print_error_steps {
+  local error="$1"
+  yq n steps.label "$error"
+  echo "  command: false"
 }
 
 function gh_api_request {
-  local url="${GH_API_BASE}/$1"
-  local output=$(
+  local url="$GH_API_BASE_URL/$GH_OWNER_REPO/$1"
+  local response=$(
     curl -s \
     -H "Authorization: token ${GH_TOKEN}" \
     -w "%{http_code}" \
     -X GET "$url"
   )
-
-  local code=$(
-    echo "$output" | tail -n1
-  )
-
-  local body=$(
-    echo "$output" | sed '$ d'
-  )
-
+  local code=$(echo "$response" | tail -n1)
+  local body=$(echo "$response" | sed '$ d')
   if [[ $code != 200 ]]; then
-    error_exit "GH API ERROR: url=$url code=$code body=$body"
+    print_error_steps "GH API ERROR: url=$url code=$code body=$body"
+    exit 0
   fi
-
-  echo "$body"
+  _result="$body"
 }
 
-function get_content {
-  local path="$1"
-  local branch="$2"
-  gh_api_request "contents/$path?ref=$branch"
-}
-
-function get_dir_sha {
-  local content="$1"
+function is_path_changed {
+  local json="$1"
   local dir="$2"
-  echo "$content" | jq -r ".[] | select(.type==\"dir\" and .path==\"$dir\") | .sha"
+  echo "$json" | jq "first(.files[] | select(.filename | startswith(\"$dir\"))) | any"
 }
 
 ###############################################################################
 
-readonly GH_API_BASE=$(get_gh_api_base)
-
-enforce_all=false
-if [[ "$BUILDKITE_BRANCH" == "master" ]]; then
-  enforce_all=true
+# declare owner/repo pair
+if [[ ${BUILDKITE_REPO} =~ $GH_OWNER_REPO_REGEXP ]]; then
+  declare -r GH_OWNER_REPO="${BASH_REMATCH[1]}"
+else
+  print_error_steps "Can't parse BUILDKITE_REPO=${BUILDKITE_REPO}"
+  exit 0
 fi
-readonly enforce_all
 
-cat .buildkite/pipeline.yml
+# declare base branch
+if [[ -n "$BUILDKITE_PULL_REQUEST_BASE_BRANCH" ]]; then
+  declare -r base_branch="$BUILDKITE_PULL_REQUEST_BASE_BRANCH"
+else
+  declare -r base_branch="$DEFAULT_BASE_BRANCH"
+fi
+
+# declare current branch
+declare -r current_branch="$BUILDKITE_BRANCH"
+
+# enforce_changed if current branch is base one
+if [[ "$current_branch" == "$base_branch" ]]; then
+  declare -r enforce_changed=true
+else
+  declare -r enforce_changed=false
+fi
+
+# general retun from functions
+declare _result
+
+###############################################################################
+
+# perform GH compare request
+if [[ $enforce_changed == false ]]; then
+  gh_api_request "compare/$base_branch...$current_branch"
+  compare_json="$_result"
+fi
+
+# print main steps
+print_main_steps
 
 for root in ${MODULAR_ROOTS[@]}; do
-  if [[ $enforce_all == false ]]; then
-    master_content=$(get_content "$root" "master")
-    branch_content=$(get_content "$root" "$BUILDKITE_BRANCH")
-  fi
-
   for path in $root/*; do
-    if [[ $enforce_all == true ]]; then
+    if [[ $enforce_changed == true ]]; then
       dir_changed=true
     else
-      master_dir_sha=$(get_dir_sha "$master_content" "$path")
-      branch_dir_sha=$(get_dir_sha "$branch_content" "$path")
-      if [[ "$master_dir_sha" != "$branch_dir_sha" ]]; then
-        dir_changed=true
-      else
-        dir_changed=false
-      fi
+      dir_changed=$(is_path_changed "$compare_json" "$path")
     fi
 
     if [[ $dir_changed == true ]]; then
-      cat "$path/.buildkite/pipeline.yml" | sed '1 d'
+      # print dir steps
+      print_dir_steps "$path"
     else
-      echo "  - label: \":point_up:\""
-      echo "    command: echo \"Skip ${path}\""
+      # print skip steps
+      print_skip_steps "$path"
     fi
   done
 done
