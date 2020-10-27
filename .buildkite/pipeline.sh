@@ -22,7 +22,7 @@ function print_dir_steps {
 }
 
 function print_skip_steps {
-  echo "  - label: :point_up: Skip $1"
+  echo "  - label: \":point_up: Skip $1\""
   echo "    command: true"
 }
 
