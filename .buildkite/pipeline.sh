@@ -28,8 +28,14 @@ function print_skip_steps {
 
 function print_error_steps {
   local error="$1"
-  yq n 'steps[0].label' "$error"
-  echo "    command: \"false\""
+  echo "$error" > pipeline.log
+  cat<<YAML
+steps:
+  - label: ":red_circle:"
+    command: "false"
+    artifact_paths:
+      - pipeline.log
+YAML
 }
 
 function gh_api_request {
@@ -89,7 +95,7 @@ declare _result
 
 # perform GH compare request
 if [[ $enforce_changed == false ]]; then
-  gh_api_request "compare/$base_branch...$current_branch"
+  gh_api_request "compare2/$base_branch...$current_branch"
   compare_json="$_result"
 fi
 
