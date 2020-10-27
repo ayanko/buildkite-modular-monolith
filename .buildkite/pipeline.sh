@@ -7,7 +7,7 @@ if [[ $? == 0 ]]; then
   # on success just print output
   echo "$output"
 else
-  # on failure generate emulated steps that print error using base64
+  # on failure generate emulated step that print error using base64
   lines=$(echo "$output" | base64)
   echo "steps:"
   echo "  - label: \":skull_and_crossbones:\""

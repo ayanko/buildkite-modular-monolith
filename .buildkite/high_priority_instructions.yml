@@ -1,0 +1,8 @@
+- command: update
+  path: steps.(command==ci/parallel_specs.sh).retry
+  value:
+    automatic:
+      limit: 3
+- command: update
+  path: agents.queue
+  value: hipri

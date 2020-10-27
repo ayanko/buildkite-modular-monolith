@@ -8,23 +8,11 @@ declare -r GH_API_BASE_URL="https://api.github.com/repos"
 declare -r GH_OWNER_REPO_REGEXP='^git\@github\.com\:(.*)\.git$'
 declare -r DEFAULT_BASE_BRANCH='master'
 declare -r PIPELINE_FILE='.buildkite/pipeline.yml'
+declare -r HIGH_PRIORITY_SCRIPT='.buildkite/high_priority_instructions.yml'
+declare -r HIGH_PRIORITY_LABEL='high-priority-build'
 declare -r MODULAR_ROOTS=(gems)
 
 ###############################################################################
-
-function print_main_steps {
-  cat $PIPELINE_FILE
-}
-
-function print_dir_steps {
-  local dir="$1"
-  cat "$dir/$PIPELINE_FILE" | sed '1 d'
-}
-
-function print_skip_steps {
-  echo "  - label: \":point_up: Skip $1\""
-  echo "    command: \"true\""
-}
 
 function gh_api_request {
   local url="$GH_API_BASE_URL/$GH_OWNER_REPO/$1"
@@ -45,6 +33,11 @@ function gh_api_request {
     exit 1
   fi
   _result="$body"
+}
+
+function is_high_priority_build {
+  local json="$1"
+  echo "$json" | jq ".[] | select(.name == \"$HIGH_PRIORITY_LABEL\") | any"
 }
 
 function is_path_changed {
@@ -85,6 +78,15 @@ declare _result
 
 ###############################################################################
 
+# perform GH pull labels request and set high_priority
+if [[ "$BUILDKITE_PULL_REQUEST" != "false" ]]; then
+  gh_api_request "issues/${BUILDKITE_PULL_REQUEST}/labels"
+  labels_json="$_result"
+  high_priority=$(is_high_priority_build "$labels_json")
+else
+  high_priority=false
+fi
+
 # perform GH compare request
 if [[ $enforce_changed == false ]]; then
   gh_api_request "compare/$base_branch...$current_branch"
@@ -92,7 +94,7 @@ if [[ $enforce_changed == false ]]; then
 fi
 
 # print main steps
-print_main_steps
+pipeline=$(cat $PIPELINE_FILE)
 
 for root in ${MODULAR_ROOTS[@]}; do
   for path in $root/*; do
@@ -103,11 +105,16 @@ for root in ${MODULAR_ROOTS[@]}; do
     fi
 
     if [[ $dir_changed == true ]]; then
-      # print dir steps
-      print_dir_steps "$path"
+      pipeline=$(echo "$pipeline" | yq m - "${path}/${PIPELINE_FILE}" -a append)
     else
-      # print skip steps
-      print_skip_steps "$path"
+      pipeline=$(echo "$pipeline" | yq w - 'steps[+].label' ":point_up: Skip ${path}")
+      pipeline=$(echo "$pipeline" | yq w - 'steps[-1].command' 'true')
     fi
   done
 done
+
+if [[ $high_priority == true ]];then
+  pipeline=$(echo "$pipeline" | yq w - -s $HIGH_PRIORITY_SCRIPT)
+fi
+
+echo "$pipeline"
