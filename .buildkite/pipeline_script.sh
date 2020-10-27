@@ -26,8 +26,8 @@ function gh_api_request {
     -w "%{http_code}" \
     -X GET "$url"
   )
-  code=$(echo "$response" | tail -n1)
-  body=$(echo "$response" | sed '$ d')
+  code=$(echo "$response" | sed '$!d')
+  body=$(echo "$response" | sed '$d')
 
   case $code in
     200)
@@ -61,7 +61,11 @@ function is_full_compare {
 function is_path_changed {
   local json="$1"
   local dir="$2"
-  echo "$json" | jq "first(.files[] | select(.filename | startswith(\"$dir\"))) | any"
+  if [[ -n "$json" ]]; then
+    echo "$json" | jq "first(.files[] | select(.filename | startswith(\"$dir\"))) | any"
+  else
+    echo true
+  fi
 }
 
 ###############################################################################
@@ -117,18 +121,15 @@ if [[ $enforce_changes == false ]]; then
   fi
 fi
 
-# print main steps
+###############################################################################
+
 pipeline=$(cat $PIPELINE_FILE)
 
 for root in ${MODULAR_ROOTS[@]}; do
   for path in $root/*; do
-    if [[ -n "$compare_json" ]]; then
-      dir_changed=$(is_path_changed "$compare_json" "$path")
-    else
-      dir_changed=true
-    fi
+    path_changed=$(is_path_changed "$compare_json" "$path")
 
-    if [[ $dir_changed == true ]]; then
+    if [[ $path_changed == true ]]; then
       pipeline=$(echo "$pipeline" | yq m - "${path}/${PIPELINE_FILE}" -a append)
     else
       pipeline=$(echo "$pipeline" | yq w - 'steps[+].label' ":point_up: Skip ${path}")
