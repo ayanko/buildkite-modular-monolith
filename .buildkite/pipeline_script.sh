@@ -28,11 +28,18 @@ function gh_api_request {
   )
   code=$(echo "$response" | tail -n1)
   body=$(echo "$response" | sed '$ d')
-  if [[ $code != 200 ]]; then
-    echo "GH API ERROR: url=$url code=$code body=$body"
-    exit 1
-  fi
-  _result="$body"
+
+  case $code in
+    200)
+      _result="$body"
+      ;;
+    500)
+      _result=""
+      ;;
+    *)
+      echo "GH API ERROR: url=$url code=$code body=$body"
+      exit 1
+  esac
 }
 
 function is_high_priority_build {
@@ -66,11 +73,11 @@ fi
 # declare current branch
 declare -r current_branch="$BUILDKITE_BRANCH"
 
-# enforce_changed if current branch is base one
+# enforce_changes if current branch is base one
 if [[ "$current_branch" == "$base_branch" ]]; then
-  declare -r enforce_changed=true
+  declare -r enforce_changes=true
 else
-  declare -r enforce_changed=false
+  declare -r enforce_changes=false
 fi
 
 # general retun from functions
@@ -78,19 +85,22 @@ declare _result
 
 ###############################################################################
 
-# perform GH pull labels request and set high_priority
+# perform GH pull labels request to set high_priority
+declare high_priority=false
 if [[ "$BUILDKITE_PULL_REQUEST" != "false" ]]; then
   gh_api_request "issues/${BUILDKITE_PULL_REQUEST}/labels"
-  labels_json="$_result"
-  high_priority=$(is_high_priority_build "$labels_json")
-else
-  high_priority=false
+  if [[ -n "$_result" ]];then
+    high_priority=$(is_high_priority_build "$_result")
+  fi
 fi
 
 # perform GH compare request
-if [[ $enforce_changed == false ]]; then
+declare compare_json=""
+if [[ $enforce_changes == false ]]; then
   gh_api_request "compare/$base_branch...$current_branch"
-  compare_json="$_result"
+  if [[ -n "$_result" ]];then
+    compare_json="$_result"
+  fi
 fi
 
 # print main steps
@@ -98,7 +108,7 @@ pipeline=$(cat $PIPELINE_FILE)
 
 for root in ${MODULAR_ROOTS[@]}; do
   for path in $root/*; do
-    if [[ $enforce_changed == true ]]; then
+    if [[ -n "$compare_json" ]]; then
       dir_changed=true
     else
       dir_changed=$(is_path_changed "$compare_json" "$path")
