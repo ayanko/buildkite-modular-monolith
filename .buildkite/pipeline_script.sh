@@ -95,7 +95,7 @@ if [[ "$BUILDKITE_PULL_REQUEST" != "false" ]]; then
 fi
 
 # perform GH compare request
-declare compare_json
+declare compare_json=""
 if [[ $enforce_changes == false ]]; then
   gh_api_request "compare/$base_branch...$current_branch"
   if [[ -n "$_result" ]];then
