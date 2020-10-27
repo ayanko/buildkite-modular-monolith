@@ -47,6 +47,17 @@ function is_high_priority_build {
   echo "$json" | jq ".[] | select(.name == \"$HIGH_PRIORITY_LABEL\") | any"
 }
 
+function is_full_compare {
+  local json="$1"
+  local total_commits=$(echo "$json" | jq '.total_commits')
+  local commits_count=$(echo "$json" | jq '.commits | length')
+  if [[ $total_commits -eq $commits_count ]]; then
+    echo true
+  else
+    echo false
+  fi
+}
+
 function is_path_changed {
   local json="$1"
   local dir="$2"
@@ -99,7 +110,10 @@ declare compare_json=""
 if [[ $enforce_changes == false ]]; then
   gh_api_request "compare/$base_branch...$current_branch"
   if [[ -n "$_result" ]];then
-    compare_json="$_result"
+    full_compare=$(is_full_compare "$_result")
+    if [[ $full_compare == true ]];then
+      compare_json="$_result"
+    fi
   fi
 fi
 
