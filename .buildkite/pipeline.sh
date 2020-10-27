@@ -32,7 +32,7 @@ function print_error_steps {
 steps:
   - label: ":skull_and_crossbones:"
     commands:
-      - "echo ${error} | base64 -d"
+      - "echo \"${error}\" | base64 -d"
       - "false"
 YAML
 }
