@@ -131,9 +131,8 @@ for root in ${MODULAR_ROOTS[@]}; do
     cat "${path}/${PIPELINE_FILE}" > $TEMP_FILE
 
     path_changed=$(is_path_changed "$compare_json" "$path")
-
-    if [[ $path_changed == false ]]; then
-      yq w -i $TEMP_FILE 'steps[*].skip' true
+    if [[ $path_changed != true ]]; then
+      yq w -i $TEMP_FILE 'steps[*].skip' 'true'
     fi
 
     pipeline=$(echo "$pipeline" | yq m - $TEMP_FILE -a append)
